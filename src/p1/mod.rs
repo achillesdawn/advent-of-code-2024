@@ -25,7 +25,7 @@ fn parse_lines(s: String) -> (Vec<i32>, Vec<i32>) {
     (list_a, list_b)
 }
 
-fn problem1() {
+pub fn problem1() {
     let s = read_input();
 
     let (mut list_a, mut list_b) = parse_lines(s);
