@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 fn read_input() -> String {
-    let file = std::fs::read_to_string("input.txt").expect("could not find input.txt");
+    let file = std::fs::read_to_string("/input.txt").expect("could not find input.txt");
 
     file
 }
@@ -53,7 +53,7 @@ fn create_sum_map(v: Vec<i32>) -> HashMap<i32, i32> {
     m
 }
 
-fn main() {
+pub fn problem2() {
     let s = read_input();
     let (mut list_a, mut list_b) = parse_lines(s);
 
@@ -71,7 +71,7 @@ fn main() {
 
 #[cfg(test)]
 mod test {
-    use crate::create_sum_map;
+    use super::create_sum_map;
 
     #[test]
     fn test_map() {
