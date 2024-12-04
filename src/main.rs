@@ -1,8 +1,6 @@
-use day3::day_3_problem_one;
 
-
-mod day3;
+mod day4;
 
 fn main() { 
-    day_3_problem_one();
+    day4::day4_problem_one();
 }

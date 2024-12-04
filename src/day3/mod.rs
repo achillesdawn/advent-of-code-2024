@@ -3,9 +3,9 @@ fn read_input() -> String {
 
     current_dir.push("src/day3/input.txt");
 
-    let file = std::fs::read_to_string(current_dir).expect("could not find input.txt");
+    let s = std::fs::read_to_string(current_dir).expect("could not find input.txt");
 
-    file
+    s
 }
 
 #[allow(unused)]
