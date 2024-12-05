@@ -9,20 +9,25 @@ fn read_input() -> String {
 }
 
 mod grid;
-use std::time::Instant;
+use std::{
+    collections::{HashMap, HashSet},
+    time::Instant,
+};
 
-use grid::Grid;
+use grid::{Direction, Grid};
+
+struct XmasCheck {
+    x: usize,
+    y: usize,
+    direction: Direction,
+}
 
 fn search(mut g: Grid) -> u32 {
     let directions = [
-        grid::Direction::Up,
-        grid::Direction::Down,
-        grid::Direction::Right,
-        grid::Direction::Left,
-        grid::Direction::UpLeft,
-        grid::Direction::UpRight,
-        grid::Direction::DownLeft,
-        grid::Direction::DownRight,
+        Direction::UpLeft,
+        Direction::UpRight,
+        Direction::DownLeft,
+        Direction::DownRight,
     ];
 
     let mut count = 0u32;
@@ -30,7 +35,7 @@ fn search(mut g: Grid) -> u32 {
     for y in 0..g.cols {
         for x in 0..g.rows {
             let c = g.get_unchecked(x, y);
-            if c != 'X' {
+            if c != 'M' {
                 continue;
             }
 
@@ -38,20 +43,77 @@ fn search(mut g: Grid) -> u32 {
                 let result = g.check_direction(x, y, direction);
                 if result {
                     // println!("FOUND AT {}, {} direction: {}", x, y, direction);
-                    count += 1;
+                    let (check1, check2) = match direction {
+                        Direction::UpRight => (
+                            XmasCheck {
+                                x: x + 2,
+                                y,
+                                direction: Direction::UpLeft,
+                            },
+                            (XmasCheck {
+                                x,
+                                y: y - 2,
+                                direction: Direction::DownRight,
+                            }),
+                        ),
+                        Direction::UpLeft => (
+                            XmasCheck {
+                                x: x - 2,
+                                y,
+                                direction: Direction::UpRight,
+                            },
+                            (XmasCheck {
+                                x,
+                                y: y - 2,
+                                direction: Direction::DownLeft,
+                            }),
+                        ),
+                        Direction::DownRight => (
+                            XmasCheck {
+                                x,
+                                y: y + 2,
+                                direction: Direction::UpRight,
+                            },
+                            (XmasCheck {
+                                x: x + 2,
+                                y,
+                                direction: Direction::DownLeft,
+                            }),
+                        ),
+                        Direction::DownLeft => (
+                            XmasCheck {
+                                x,
+                                y: y + 2,
+                                direction: Direction::UpRight,
+                            },
+                            (XmasCheck {
+                                x: x + 2,
+                                y,
+                                direction: Direction::DownLeft,
+                            }),
+                        ),
+                        _ => panic!(),
+                    };
+
+                    let check = g.check_direction(x, y, new_direction1);
+                    if check {
+                        println!(
+                            "Found X-MAS, x: {}, y: {}, direction: {} {}",
+                            x, y, direction, new_direction1
+                        );
+                        count += 1;
+                    }
                 }
             }
         }
     }
-
     count
 }
 
 pub fn day4_problem_one() {
-
     let s = read_input();
 
-    let a = Grid::new(s.to_owned());
+    let a = Grid::new_reversed(s.to_owned());
     let now = Instant::now();
     let count = search(a);
 
@@ -64,21 +126,40 @@ pub fn day4_problem_one() {
 mod test {
     use super::*;
 
+    #[ignore]
     #[test]
     fn case_one() {
-        let s = "MMMSXXMASM
-MSAMXMSMSA
-AMXSXMAAMM
-MSAMASMSMX
-XMASAMXAMM
-XXAMMXXAMA
-SMSMSASXSS
-SAXAMASAAA
-MAMMMXMMMM
-MXMXAXMASX";
+        let s = "MMMSXXMASM\n\
+            MSAMXMSMSA\n\
+            AMXSXMAAMM\n\
+            MSAMASMSMX\n\
+            XMASAMXAMM\n\
+            XXAMMXXAMA\n\
+            SMSMSASXSS\n\
+            SAXAMASAAA\n\
+            MAMMMXMMMM\n\
+            MXMXAXMASX";
 
         let a = Grid::new(s.to_owned());
         let count = search(a);
         assert_eq!(count, 18);
+    }
+
+    #[test]
+    fn case_two() {
+        let s = "MMMSXXMASM\n\
+            MSAMXMSMSA\n\
+            AMXSXMAAMM\n\
+            MSAMASMSMX\n\
+            XMASAMXAMM\n\
+            XXAMMXXAMA\n\
+            SMSMSASXSS\n\
+            SAXAMASAAA\n\
+            MAMMMXMMMM\n\
+            MXMXAXMASX";
+
+        let a = Grid::new_reversed(s.to_owned());
+        let count = search(a);
+        assert_eq!(count, 9);
     }
 }

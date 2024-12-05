@@ -55,6 +55,20 @@ impl Grid {
         }
     }
 
+    pub fn new_reversed(s: String) -> Grid {
+        let result: Vec<Vec<char>> = s.lines().map(|line| line.chars().rev().collect()).collect();
+
+        let cols = result.len();
+        let rows = result[0].len();
+
+        Grid {
+            grid: result,
+            rows,
+            cols,
+            lookup: LookUp::new(),
+        }
+    }
+
     pub fn get(&self, x: usize, y: usize) -> Option<char> {
         if (0..self.rows).contains(&x) && (0..self.cols).contains(&y) {
             Some(self.grid[y][x])
@@ -195,16 +209,15 @@ struct LookUp {
 
 impl LookUp {
     fn new() -> Self {
-        LookUp { ch: 'M' }
+        LookUp { ch: 'A' }
     }
 
     fn restore_lookup(&mut self) {
-        self.ch = 'M';
+        self.ch = 'A';
     }
 
     fn next_lookup(&mut self) -> bool {
         self.ch = match self.ch {
-            'M' => 'A',
             'A' => 'S',
             _ => return false,
         };
