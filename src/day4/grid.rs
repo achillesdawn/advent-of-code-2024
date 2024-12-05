@@ -1,4 +1,6 @@
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display};
+
+use super::{get_opposite_diagonal, Diagonal};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Direction {
@@ -37,6 +39,7 @@ pub struct Grid {
     pub rows: usize,
 
     lookup: LookUp,
+    pub diagonal_set: HashSet<Diagonal>,
 }
 
 #[allow(unused)]
@@ -47,11 +50,14 @@ impl Grid {
         let cols = result.len();
         let rows = result[0].len();
 
+        let mut diagonal_set = HashSet::new();
+
         Grid {
             grid: result,
             rows,
             cols,
             lookup: LookUp::new(),
+            diagonal_set,
         }
     }
 
@@ -61,11 +67,14 @@ impl Grid {
         let cols = result.len();
         let rows = result[0].len();
 
+        let mut diagonal_set = HashSet::new();
+
         Grid {
             grid: result,
             rows,
             cols,
             lookup: LookUp::new(),
+            diagonal_set,
         }
     }
 
@@ -102,7 +111,6 @@ impl Grid {
     }
 
     pub fn check_direction(&mut self, x: usize, y: usize, direction: &Direction) -> bool {
-
         // println!("checking x:{} y:{} direction: {}", x, y, direction);
 
         let (x, y) = match direction {
@@ -183,7 +191,6 @@ impl Grid {
         // dbg!((x, y));
 
         if let Some(c) = self.get(x, y) {
-
             if c == self.lookup.ch {
                 let more = self.lookup.next_lookup();
 
@@ -198,6 +205,34 @@ impl Grid {
             }
         }
         self.lookup.restore_lookup();
+        false
+    }
+
+    pub fn check_diagonal(&mut self, diagonal: &Diagonal) -> bool {
+        if let Some(next_c) = self.get(diagonal.x, diagonal.y) {
+            if next_c != 'M' {
+                return false;
+            }
+
+            let opposite_diagonal = get_opposite_diagonal(diagonal);
+
+            if self.diagonal_set.contains(&diagonal)
+                || self.diagonal_set.contains(&opposite_diagonal)
+            {
+                return false;
+            }
+            let checked_result = self.check_direction(diagonal.x, diagonal.y, &diagonal.direction);
+
+            if !checked_result {
+                return false;
+            }
+
+            self.diagonal_set.insert(diagonal.clone());
+            self.diagonal_set.insert(opposite_diagonal);
+
+            return true;
+        }
+
         false
     }
 }
