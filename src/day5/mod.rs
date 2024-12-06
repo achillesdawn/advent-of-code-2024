@@ -109,16 +109,14 @@ fn evaluate(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) 
     true
 }
 
-fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) {
+fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) -> u32 {
     let mut original = updates.clone();
 
-
-
     'outer: loop {
-        let updates: HashMap<&String, usize> = original
+        let updates: HashMap<String, usize> = original
             .iter()
             .enumerate()
-            .map(|(idx, i)| (i, idx))
+            .map(|(idx, i)| (i.clone(), idx))
             .collect();
 
         for (key, instruction) in instructions.iter() {
@@ -128,7 +126,7 @@ fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) {
                         if idx > compare {
                             dbg!(&original, key, idx, less, compare);
                             original.swap(*idx, *compare);
-                            order(instructions, &original);
+                            continue 'outer;
                         }
                     }
                 }
@@ -138,7 +136,7 @@ fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) {
                         if idx < compare {
                             dbg!(&original, key, idx, more, compare);
                             original.swap(*idx, *compare);
-                            order(instructions, &original);
+                            continue 'outer;
                         }
                     }
                 }
@@ -148,7 +146,13 @@ fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) {
         break;
     }
 
-    todo!()
+    get_middle(&original)
+}
+
+fn get_middle(a: &Vec<String>) -> u32 {
+    let middle_index = a.len() / 2;
+    let middle = &a[middle_index];
+    middle.parse::<u32>().unwrap()
 }
 
 pub fn day5_first() {
@@ -163,12 +167,10 @@ pub fn day5_first() {
     for update in updates.iter() {
         if evaluate(&instructions, update) {
             // dbg!(update);
-            let middle_index = update.len() / 2;
-            let middle = &update[middle_index];
             // dbg!(middle_index, middle);
-            sum_middle_index += middle.parse::<u32>().unwrap();
+            // sum_middle_index += get_middle(update);
         } else {
-            order(&instructions, update);
+            sum_middle_index += order(&instructions, update);
         }
     }
 
@@ -270,15 +272,12 @@ mod tests {
 
         for update in updates.iter() {
             if evaluate(&instructions, update) {
-                let middle_index = update.len() / 2;
-                let middle = &update[middle_index];
-
-                sum_middle_index += middle.parse::<u32>().unwrap();
+                continue;
             } else {
-                order(&instructions, update);
+                sum_middle_index += order(&instructions, update);
             }
         }
 
-        assert_eq!(sum_middle_index, 143);
+        assert_eq!(sum_middle_index, 123);
     }
 }
