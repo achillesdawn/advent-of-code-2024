@@ -109,8 +109,12 @@ fn parse_updates(updates: Vec<String>) -> Vec<Vec<String>> {
         .collect()
 }
 
+fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) {
+    dbg!(updates);
+}
+
 pub fn day5_first() {
-    let s = read_input("src/day5/test.txt");
+    let s = read_input("src/day5/input.txt");
     let (instructions, updates) = parse_input(s);
 
     let instructions = parse_instructions(instructions);
@@ -120,12 +124,14 @@ pub fn day5_first() {
 
     for update in updates.iter() {
         if evaluate(&instructions, update) {
-            dbg!(update);
+            // dbg!(update);
             let middle_index = update.len() / 2;
             let middle = &update[middle_index];
-            dbg!(middle_index, middle);
+            // dbg!(middle_index, middle);
             sum_middle_index += middle.parse::<u32>().unwrap();
-        } 
+        } else {
+            order(&instructions, update);
+        }
     }
 
     dbg!(sum_middle_index);
