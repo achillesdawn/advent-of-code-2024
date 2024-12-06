@@ -111,14 +111,31 @@ impl Grid {
 
     fn peak_next(&mut self) {
         match self.direction {
-            Direction::Up => self.peak_and_move(self.x, self.y - 1),
+            Direction::Up => {
+                let y = self.y.checked_sub(1);
+                if y.is_none() {
+                    self.done = true;
+                    return;
+                }
+                self.peak_and_move(self.x, self.y - 1)
+            }
             Direction::Down => self.peak_and_move(self.x, self.y + 1),
             Direction::Right => self.peak_and_move(self.x + 1, self.y),
-            Direction::Left => self.peak_and_move(self.x - 1, self.y),
+            Direction::Left => {
+                let x = self.x.checked_sub(1);
+                if x.is_none() {
+                    self.done = true;
+                    return;
+                }
+                self.peak_and_move(self.x - 1, self.y)
+            }
         }
     }
 
     pub fn run(&mut self) {
+        // first position
+        self.update_visited();
+
         while !self.done {
             self.peak_next();
             // dbg!((self.x, self.y));
