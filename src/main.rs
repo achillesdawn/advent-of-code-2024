@@ -1,9 +1,13 @@
 
 mod day4;
-mod day5;
+mod day6;
+
+fn read_input(path: &str) -> String {
+    std::fs::read_to_string(path).expect(&format!("could not find path: {}", path))
+}
 
 fn main() { 
-    // day4::day4_problem_one();
-    day5::day5_first();
+    day6::day_6_problem_one();
+    
 
 }
