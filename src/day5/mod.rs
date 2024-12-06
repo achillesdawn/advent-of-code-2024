@@ -40,36 +40,6 @@ impl Instruction {
     }
 }
 
-fn evaluate(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) -> bool {
-    let updates: HashMap<&String, usize> = updates
-        .iter()
-        .enumerate()
-        .map(|(idx, i)| (i, idx))
-        .collect();
-
-    for (key, instruction) in instructions.iter() {
-        if let Some(idx) = updates.get(key) {
-            for less in instruction.less.iter() {
-                if let Some(compare) = updates.get(less) {
-                    if idx > compare {
-                        return false;
-                    }
-                }
-            }
-
-            for more in instruction.more.iter() {
-                if let Some(compare) = updates.get(more) {
-                    if idx < compare {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-
-    true
-}
-
 fn parse_instructions(instructions: Vec<String>) -> HashMap<String, Instruction> {
     let mut result: HashMap<String, Instruction> = HashMap::new();
 
@@ -109,8 +79,76 @@ fn parse_updates(updates: Vec<String>) -> Vec<Vec<String>> {
         .collect()
 }
 
+fn evaluate(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) -> bool {
+    let updates: HashMap<&String, usize> = updates
+        .iter()
+        .enumerate()
+        .map(|(idx, i)| (i, idx))
+        .collect();
+
+    for (key, instruction) in instructions.iter() {
+        if let Some(idx) = updates.get(key) {
+            for less in instruction.less.iter() {
+                if let Some(compare) = updates.get(less) {
+                    if idx > compare {
+                        return false;
+                    }
+                }
+            }
+
+            for more in instruction.more.iter() {
+                if let Some(compare) = updates.get(more) {
+                    if idx < compare {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    true
+}
+
 fn order(instructions: &HashMap<String, Instruction>, updates: &Vec<String>) {
-    dbg!(updates);
+    let mut original = updates.clone();
+
+
+
+    'outer: loop {
+        let updates: HashMap<&String, usize> = original
+            .iter()
+            .enumerate()
+            .map(|(idx, i)| (i, idx))
+            .collect();
+
+        for (key, instruction) in instructions.iter() {
+            if let Some(idx) = updates.get(key) {
+                for less in instruction.less.iter() {
+                    if let Some(compare) = updates.get(less) {
+                        if idx > compare {
+                            dbg!(&original, key, idx, less, compare);
+                            original.swap(*idx, *compare);
+                            order(instructions, &original);
+                        }
+                    }
+                }
+
+                for more in instruction.more.iter() {
+                    if let Some(compare) = updates.get(more) {
+                        if idx < compare {
+                            dbg!(&original, key, idx, more, compare);
+                            original.swap(*idx, *compare);
+                            order(instructions, &original);
+                        }
+                    }
+                }
+            }
+        }
+
+        break;
+    }
+
+    todo!()
 }
 
 pub fn day5_first() {
@@ -142,6 +180,7 @@ mod tests {
 
     use super::*;
 
+    #[ignore = "part2"]
     #[test]
     fn test_load_and_parse() {
         let s = read_input("src/day5/test.txt");
@@ -153,6 +192,7 @@ mod tests {
         assert_eq!(instructions.last().unwrap(), "53|13");
     }
 
+    #[ignore = "part2"]
     #[test]
     fn test_parse_instructions() {
         let s = read_input("src/day5/test.txt");
@@ -163,6 +203,7 @@ mod tests {
         assert!(instructions["75"].less.contains("61"));
     }
 
+    #[ignore = "part2"]
     #[test]
     fn test_evaluate() {
         let s = read_input("src/day5/test.txt");
@@ -193,16 +234,17 @@ mod tests {
         assert_eq!(result, false);
     }
 
+    #[ignore = "part2"]
     #[test]
     fn test_case_full() {
         let s = read_input("src/day5/test.txt");
         let (instructions, updates) = parse_input(s);
-    
+
         let instructions = parse_instructions(instructions);
         let updates = parse_updates(updates);
-    
+
         let mut sum_middle_index = 0u32;
-    
+
         for update in updates.iter() {
             if evaluate(&instructions, update) {
                 dbg!(update);
@@ -210,9 +252,33 @@ mod tests {
                 let middle = &update[middle_index];
                 dbg!(middle_index, middle);
                 sum_middle_index += middle.parse::<u32>().unwrap();
-            } 
+            }
         }
-    
+
+        assert_eq!(sum_middle_index, 143);
+    }
+
+    #[test]
+    fn test_ordering() {
+        let s = read_input("src/day5/test.txt");
+        let (instructions, updates) = parse_input(s);
+
+        let instructions = parse_instructions(instructions);
+        let updates = parse_updates(updates);
+
+        let mut sum_middle_index = 0u32;
+
+        for update in updates.iter() {
+            if evaluate(&instructions, update) {
+                let middle_index = update.len() / 2;
+                let middle = &update[middle_index];
+
+                sum_middle_index += middle.parse::<u32>().unwrap();
+            } else {
+                order(&instructions, update);
+            }
+        }
+
         assert_eq!(sum_middle_index, 143);
     }
 }
