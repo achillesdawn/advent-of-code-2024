@@ -24,6 +24,9 @@ struct Obstacle {
     position: Vector,
     hit_direction: Option<Direction>,
     num_hits: u16,
+    hits: HashSet<(usize, usize, Direction)>,
+    repeated_hits: Vec<(usize, usize, Direction)>,
+    last_hits: Vec<(usize, usize, Direction)>,
 }
 
 impl Obstacle {
@@ -32,11 +35,21 @@ impl Obstacle {
             position: Vector::new(),
             hit_direction: None,
             num_hits: 0,
+            hits: HashSet::new(),
+            repeated_hits: Vec::new(),
+            last_hits: Vec::new(),
         }
+    }
+
+    fn reset(&mut self) {
+        self.hit_direction = None;
+        self.num_hits = 0;
+        self.hits = HashSet::new();
+        self.repeated_hits = Vec::new();
+        self.last_hits = Vec::new();
     }
 }
 
-#[allow(unused)]
 #[derive(Debug)]
 pub struct Grid {
     grid: Vec<Vec<char>>,
@@ -55,11 +68,13 @@ pub struct Grid {
 
     visited: HashSet<(usize, usize)>,
 
+    num_moves: u32,
+
     done: bool,
     is_loop: bool,
+    store_pos: bool,
 }
 
-#[allow(unused)]
 impl Grid {
     pub fn new(s: String) -> Self {
         let grid: Vec<Vec<char>> = s.lines().map(|line| line.chars().collect()).collect();
@@ -68,6 +83,7 @@ impl Grid {
         let rows = grid[0].len();
 
         let pos = Grid::find_starting_pos(&grid);
+        let start_pos = Vector::with_coords(pos.0, pos.1);
 
         Grid {
             grid,
@@ -80,14 +96,39 @@ impl Grid {
             x: pos.0,
             y: pos.1,
 
-            start_pos: Vector::with_coords(pos.0, pos.1),
+            start_pos,
 
             obstacle: Obstacle::new(),
 
             visited: HashSet::new(),
 
+            num_moves: 0,
+
             done: false,
             is_loop: false,
+            store_pos: true,
+        }
+    }
+
+    pub fn get_visited(&self) -> &HashSet<(usize, usize)> {
+        &self.visited
+    }
+
+    pub fn get_distinct_positions(&self) -> usize {
+        self.visited.len()
+    }
+
+    fn update_visited(&mut self) {
+        // println!("moved: {},{}", self.x, self.y);
+        if self.store_pos {
+            self.visited.insert((self.x, self.y));
+        } else {
+            self.num_moves += 1;
+
+            if self.num_moves > 10000 {
+                self.done = true;
+                self.is_loop = true;
+            }
         }
     }
 
@@ -99,15 +140,11 @@ impl Grid {
         }
     }
 
-    fn update_visited(&mut self) {
+    fn make_a_move(&mut self) {
 
-        // println!("moved: {},{}", self.x, self.y);
-        self.visited.insert((self.x, self.y));
-    }
 
-    fn make_a_move(&mut self, x: usize, y: usize) {
         match self.direction {
-            Direction::Up => self.y -= 1,
+            Direction::Up => {self.y -= 1},
             Direction::Down => self.y += 1,
             Direction::Right => self.x += 1,
             Direction::Left => self.x -= 1,
@@ -116,61 +153,81 @@ impl Grid {
         self.update_visited();
     }
 
+    fn update_hits(&mut self, x: usize, y: usize) -> bool {
+        if self.obstacle.hits.contains(&(x, y, self.direction.clone())) {
+            return true;
+        } else {
+            self.obstacle.hits.insert((x, y, self.direction.clone()));
+            return false;
+        }
+    }
+
     fn peak_and_move(&mut self, x: usize, y: usize) {
         if let Some(c) = self.get(x, y) {
             if c == '#' {
-                // println!("found obstacle, rotating");
+                if self.update_hits(x, y) {
+                    println!(
+                        "repeated hit from same direction: {},{} {}",
+                        x, y, self.direction
+                    );
+                }
 
                 self.direction = self.direction.rotate();
-                // dbg!(&self.direction);
             } else if c == 'O' {
-                
+                if self.update_hits(x, y) {
+                    println!(
+                        "repeated hit from same direction: {},{} {}",
+                        x, y, self.direction
+                    );
+                }
 
                 if self.obstacle.num_hits == 0 {
+                    println!("obstacle first hit: direction: {}", self.direction);
+
                     self.obstacle.hit_direction = Some(self.direction.clone());
                     self.obstacle.num_hits += 1;
                 } else {
-                    
-                    if let Some(obstacle_hit_direction) = &self.obstacle.hit_direction {
-                        if self.direction == *obstacle_hit_direction {
-                            self.done = true;
-                            self.is_loop = true;
-                            return;
-                        } else {
-                            self.obstacle.hit_direction = Some(self.direction.clone());
-                        }
-                    }
-
-                    dbg!(self.obstacle.num_hits);
+                    self.obstacle.num_hits += 1;
+                    println!("obstacle hits {}", self.obstacle.num_hits);
                 }
 
                 self.direction = self.direction.rotate();
             }
 
-            self.make_a_move(x, y);
+            self.make_a_move();
         } else {
-            self.done = true
+            dbg!(self.x, self.rows, self.y, self.cols, &self.direction);
+            println!("upper bounds exit");
+
+            self.done = true;
+            self.is_loop = false;
         }
     }
 
     fn peak_next(&mut self) {
         match self.direction {
             Direction::Up => {
-                let y = self.y.checked_sub(1);
-                if y.is_none() {
+                if self.y.checked_sub(1).is_none() {
                     self.done = true;
+                    self.is_loop = false;
+                    println!("lower bounds exit");
                     return;
                 }
+
                 self.peak_and_move(self.x, self.y - 1)
             }
             Direction::Down => self.peak_and_move(self.x, self.y + 1),
             Direction::Right => self.peak_and_move(self.x + 1, self.y),
             Direction::Left => {
-                let x = self.x.checked_sub(1);
-                if x.is_none() {
+                if self.x.checked_sub(1).is_none() {
                     self.done = true;
+                    self.is_loop = false;
+
+                    dbg!(self.x, self.rows, self.y, self.cols, &self.direction);
+                    println!("lower bounds exit");
                     return;
                 }
+
                 self.peak_and_move(self.x - 1, self.y)
             }
         }
@@ -186,28 +243,30 @@ impl Grid {
         }
     }
 
-    pub fn get_distinct_positions(&self) -> usize {
-        self.visited.len()
-    }
-
-    fn restart(&mut self) {
+    fn prepare_run(&mut self) {
         self.x = self.start_pos.x;
         self.y = self.start_pos.y;
+
+        self.direction = Direction::Up;
+        self.num_moves = 0;
 
         self.done = false;
         self.is_loop = false;
 
-        self.direction = Direction::Up;
+        self.store_pos = false;
+
+        self.obstacle.reset();
     }
 
     pub fn rerun_with_obstacle(&mut self) -> bool {
-        self.restart();
+        self.prepare_run();
 
         while !self.done {
             self.peak_next();
         }
 
         if self.is_loop {
+            println!("is loop");
             return true;
         }
 
@@ -216,21 +275,16 @@ impl Grid {
 
     pub fn grid_put_obstacle(&mut self, x: usize, y: usize) {
         self.obstacle.position = Vector::with_coords(x, y);
-        self.obstacle.num_hits = 0;
-        self.obstacle.hit_direction = None;
 
         self.grid[self.obstacle.position.y][self.obstacle.position.x] = 'O';
 
         // self.print_grid();
-        // println!("putting obstacle at {},{}", x, y);
+        println!("----------------");
+        println!("putting obstacle at {},{}", x, y);
     }
 
     pub fn grid_remove_obstacle(&mut self) {
         self.grid[self.obstacle.position.y][self.obstacle.position.x] = '.';
-    }
-
-    pub fn get_visited(&self) -> &HashSet<(usize, usize)> {
-        &self.visited
     }
 }
 
