@@ -141,10 +141,8 @@ impl Grid {
     }
 
     fn make_a_move(&mut self) {
-
-
         match self.direction {
-            Direction::Up => {self.y -= 1},
+            Direction::Up => self.y -= 1,
             Direction::Down => self.y += 1,
             Direction::Right => self.x += 1,
             Direction::Left => self.x -= 1,
@@ -170,6 +168,8 @@ impl Grid {
                         "repeated hit from same direction: {},{} {}",
                         x, y, self.direction
                     );
+
+                    // self.obstacle.repeated_hits.push(value);
                 }
 
                 self.direction = self.direction.rotate();
@@ -179,6 +179,9 @@ impl Grid {
                         "repeated hit from same direction: {},{} {}",
                         x, y, self.direction
                     );
+                    self.obstacle
+                        .repeated_hits
+                        .push((x, y, self.direction.clone()));
                 }
 
                 if self.obstacle.num_hits == 0 {
@@ -188,7 +191,18 @@ impl Grid {
                     self.obstacle.num_hits += 1;
                 } else {
                     self.obstacle.num_hits += 1;
+
                     println!("obstacle hits {}", self.obstacle.num_hits);
+                    dbg!(&self.obstacle.repeated_hits);
+
+                    if self.obstacle.repeated_hits == self.obstacle.last_hits {
+                        self.done = true;
+                        self.is_loop = true;
+                        return;
+                    } else {
+                        self.obstacle.last_hits = self.obstacle.repeated_hits.clone();
+                        self.obstacle.repeated_hits = Vec::new();
+                    }
                 }
 
                 self.direction = self.direction.rotate();
