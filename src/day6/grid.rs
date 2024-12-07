@@ -1,4 +1,9 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    collections::HashSet,
+    fmt::Display,
+    io::{BufWriter, Write},
+    path::PathBuf,
+};
 
 mod direction;
 use direction::Direction;
@@ -25,8 +30,7 @@ struct Obstacle {
     hit_direction: Option<Direction>,
     num_hits: u16,
     hits: HashSet<(usize, usize, Direction)>,
-    repeated_hits: Vec<(usize, usize, Direction)>,
-    last_hits: Vec<(usize, usize, Direction)>,
+    last_hits: Option<(usize, usize, Direction)>,
 }
 
 impl Obstacle {
@@ -36,8 +40,7 @@ impl Obstacle {
             hit_direction: None,
             num_hits: 0,
             hits: HashSet::new(),
-            repeated_hits: Vec::new(),
-            last_hits: Vec::new(),
+            last_hits: None,
         }
     }
 
@@ -45,8 +48,7 @@ impl Obstacle {
         self.hit_direction = None;
         self.num_hits = 0;
         self.hits = HashSet::new();
-        self.repeated_hits = Vec::new();
-        self.last_hits = Vec::new();
+        self.last_hits = None;
     }
 }
 
@@ -66,7 +68,7 @@ pub struct Grid {
 
     obstacle: Obstacle,
 
-    visited: HashSet<(usize, usize)>,
+    pub visited: HashSet<(usize, usize)>,
 
     num_moves: u32,
 
@@ -125,9 +127,9 @@ impl Grid {
         } else {
             self.num_moves += 1;
 
-            if self.num_moves > 10000 {
+            if self.num_moves > 100_000 {
                 self.done = true;
-                self.is_loop = true;
+                self.is_loop = false;
             }
         }
     }
@@ -141,6 +143,9 @@ impl Grid {
     }
 
     fn make_a_move(&mut self) {
+
+        
+
         match self.direction {
             Direction::Up => self.y -= 1,
             Direction::Down => self.y += 1,
@@ -169,43 +174,42 @@ impl Grid {
                         x, y, self.direction
                     );
 
-                    // self.obstacle.repeated_hits.push(value);
-                }
-
-                self.direction = self.direction.rotate();
-            } else if c == 'O' {
-                if self.update_hits(x, y) {
-                    println!(
-                        "repeated hit from same direction: {},{} {}",
-                        x, y, self.direction
-                    );
-                    self.obstacle
-                        .repeated_hits
-                        .push((x, y, self.direction.clone()));
-                }
-
-                if self.obstacle.num_hits == 0 {
-                    println!("obstacle first hit: direction: {}", self.direction);
-
-                    self.obstacle.hit_direction = Some(self.direction.clone());
-                    self.obstacle.num_hits += 1;
-                } else {
-                    self.obstacle.num_hits += 1;
-
-                    println!("obstacle hits {}", self.obstacle.num_hits);
-                    dbg!(&self.obstacle.repeated_hits);
-
-                    if self.obstacle.repeated_hits == self.obstacle.last_hits {
-                        self.done = true;
-                        self.is_loop = true;
-                        return;
+                    if let Some(last_hit) = &self.obstacle.last_hits {
+                        if *last_hit == (x, y, self.direction.clone()) {
+                            self.done = true;
+                            self.is_loop = true;
+                            return;
+                        }
                     } else {
-                        self.obstacle.last_hits = self.obstacle.repeated_hits.clone();
-                        self.obstacle.repeated_hits = Vec::new();
+                        self.obstacle.last_hits = Some((x, y, self.direction.clone()));
                     }
                 }
 
                 self.direction = self.direction.rotate();
+                return self.peak_next();
+            } else if c == 'O' {
+
+                println!("obstacle hit x:{} y: {}", x, y );
+
+                if self.update_hits(x, y) {
+                    println!(
+                        "obstacle hit repeated hit from same direction: {},{} {}",
+                        x, y, self.direction
+                    );
+
+                    if let Some(last_hit) = &self.obstacle.last_hits {
+                        if *last_hit == (x, y, self.direction.clone()) {
+                            self.done = true;
+                            self.is_loop = true;
+                            return;
+                        }
+                    } else {
+                        self.obstacle.last_hits = Some((x, y, self.direction.clone()));
+                    }
+                }
+
+                self.direction = self.direction.rotate();
+                return self.peak_next();
             }
 
             self.make_a_move();
@@ -311,6 +315,22 @@ impl Grid {
             }
 
             print!("\n");
+        }
+    }
+
+    pub fn write_to_file(&self, path: PathBuf) {
+        let file = std::fs::File::create(path).unwrap();
+
+        let mut buf = BufWriter::new(file);
+
+        for (col, outer) in self.grid.iter().enumerate() {
+            write!(buf, "{:<3} ", col).unwrap();
+            ("{} ", col);
+            for c in outer.iter() {
+                write!(buf, "{}", c).unwrap();
+            }
+
+            write!(buf, "\n").unwrap();
         }
     }
 
