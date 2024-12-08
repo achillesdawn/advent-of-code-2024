@@ -1,6 +1,5 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Display,
     io::{BufWriter, Write},
     path::PathBuf,
 };
@@ -17,10 +16,6 @@ pub struct Vector {
 }
 
 impl Vector {
-    fn new() -> Self {
-        Vector { x: 0, y: 0 }
-    }
-
     fn with_coords(x: i32, y: i32) -> Self {
         Vector { x, y }
     }
@@ -98,6 +93,7 @@ impl Grid {
         }
     }
 
+    #[allow(unused)]
     pub fn calculate_antinodes(&mut self) {
         for (signal_name, signals) in self.signals.iter() {
             for signal in signals.iter() {
@@ -141,13 +137,14 @@ impl Grid {
     pub fn calculate_antinodes_harmonics(&mut self) {
         let all_signals = std::mem::take(&mut self.signals);
 
-        for (signal_name, signals) in all_signals {
+        for (_, signals) in all_signals {
             for signal in signals.iter() {
                 for other in signals.iter() {
                     if other.position != signal.position {
                         let separation = signal.position.subtract(&other.position);
 
-                        self.anti_nodes.insert((signal.position.x, signal.position.y));
+                        self.anti_nodes
+                            .insert((signal.position.x, signal.position.y));
                         self.anti_nodes.insert((other.position.x, other.position.y));
 
                         self.add_harmonics(signal.position.clone(), &separation);
@@ -156,10 +153,6 @@ impl Grid {
                 }
             }
         }
-    }
-
-    pub fn get_antinodes(&self) -> &HashSet<(i32, i32)> {
-        &self.anti_nodes
     }
 
     pub fn get_distinct_positions(&self) -> usize {
@@ -172,14 +165,6 @@ impl Grid {
         }
 
         false
-    }
-
-    fn get(&self, x: usize, y: usize) -> Option<char> {
-        if (0..self.rows).contains(&x) && (0..self.cols).contains(&y) {
-            Some(self.grid[y][x])
-        } else {
-            None
-        }
     }
 }
 
