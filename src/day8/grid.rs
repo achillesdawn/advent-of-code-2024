@@ -10,10 +10,10 @@ pub struct Signal {
     position: Vector,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Vector {
-    pub x: usize,
-    pub y: usize,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Vector {
@@ -21,8 +21,29 @@ impl Vector {
         Vector { x: 0, y: 0 }
     }
 
-    fn with_coords(x: usize, y: usize) -> Self {
+    fn with_coords(x: i32, y: i32) -> Self {
         Vector { x, y }
+    }
+
+    fn subtract(&self, other: &Vector) -> Self {
+        Vector {
+            x: self.x - other.x,
+            y: self.y - other.y,
+        }
+    }
+
+    fn add(&self, other: &Vector) -> Self {
+        Vector {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+
+    fn invert(&self) -> Self {
+        Vector {
+            x: self.x * -1,
+            y: self.y * -1,
+        }
     }
 }
 
@@ -35,7 +56,7 @@ pub struct Grid {
 
     pub signals: HashMap<char, Vec<Signal>>,
 
-    pub anti_nodes: HashSet<(usize, usize)>,
+    pub anti_nodes: HashSet<(i32, i32)>,
 }
 
 impl Grid {
@@ -66,23 +87,56 @@ impl Grid {
                     entry
                         .and_modify(|e| {
                             e.push(Signal {
-                                position: Vector::with_coords(row, col),
+                                position: Vector::with_coords(row as i32, col as i32),
                             })
                         })
                         .or_insert(Vec::from([Signal {
-                            position: Vector::with_coords(row, col),
+                            position: Vector::with_coords(row as i32, col as i32),
                         }]));
                 }
             }
         }
     }
 
-    pub fn get_antinodes(&self) -> &HashSet<(usize, usize)> {
+    pub fn calculate_antinodes(&mut self) {
+        for (signal_name, signals) in self.signals.iter() {
+            for signal in signals.iter() {
+                for other in signals.iter() {
+                    if other.position != signal.position {
+                        let separation = signal.position.subtract(&other.position);
+
+                        let antinode_1 = signal.position.add(&separation);
+                        let antinode_2 = other.position.add(&separation.invert());
+
+                        if self.check(antinode_1.x, antinode_1.y) {
+                            self.anti_nodes.insert((antinode_1.x, antinode_1.y));
+                            self.grid[antinode_1.y as usize][antinode_1.x as usize] = '#'
+                        }
+
+                        if self.check(antinode_2.x, antinode_2.y) {
+                            self.anti_nodes.insert((antinode_2.x, antinode_2.y));
+                            self.grid[antinode_2.y as usize][antinode_2.x as usize] = '#'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_antinodes(&self) -> &HashSet<(i32, i32)> {
         &self.anti_nodes
     }
 
     pub fn get_distinct_positions(&self) -> usize {
         self.anti_nodes.len()
+    }
+
+    fn check(&self, x: i32, y: i32) -> bool {
+        if (0..self.rows as i32).contains(&x) && (0..self.cols as i32).contains(&y) {
+            return true;
+        }
+
+        false
     }
 
     fn get(&self, x: usize, y: usize) -> Option<char> {
