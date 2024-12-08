@@ -10,7 +10,7 @@ pub fn day_8() {
 
     g.print_grid();
     g.collect_signals();
-    g.calculate_antinodes();
+    g.calculate_antinodes_harmonics();
 
     dbg!(g.get_distinct_positions());
 }
@@ -33,5 +33,18 @@ mod test {
         g.calculate_antinodes();
 
         assert_eq!(g.get_distinct_positions(), 14);
+    }
+
+    #[test]
+    fn test_harmonics() {
+        let s = read_input("src/day8/test.txt");
+        let mut g = Grid::new(s);
+
+        g.print_grid();
+        g.collect_signals();
+        g.calculate_antinodes_harmonics();
+        g.print_grid();
+
+        assert_eq!(g.get_distinct_positions(), 34);
     }
 }

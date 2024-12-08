@@ -10,7 +10,7 @@ pub struct Signal {
     position: Vector,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Vector {
     pub x: i32,
     pub y: i32,
@@ -117,6 +117,41 @@ impl Grid {
                             self.anti_nodes.insert((antinode_2.x, antinode_2.y));
                             self.grid[antinode_2.y as usize][antinode_2.x as usize] = '#'
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    fn add_harmonics(&mut self, mut position: Vector, direction: &Vector) {
+        loop {
+            let antinode = position.add(&direction);
+
+            if self.check(antinode.x, antinode.y) {
+                self.anti_nodes.insert((antinode.x, antinode.y));
+                self.grid[antinode.y as usize][antinode.x as usize] = '#';
+
+                position = antinode;
+            } else {
+                break;
+            }
+        }
+    }
+
+    pub fn calculate_antinodes_harmonics(&mut self) {
+        let all_signals = std::mem::take(&mut self.signals);
+
+        for (signal_name, signals) in all_signals {
+            for signal in signals.iter() {
+                for other in signals.iter() {
+                    if other.position != signal.position {
+                        let separation = signal.position.subtract(&other.position);
+
+                        self.anti_nodes.insert((signal.position.x, signal.position.y));
+                        self.anti_nodes.insert((other.position.x, other.position.y));
+
+                        self.add_harmonics(signal.position.clone(), &separation);
+                        self.add_harmonics(other.position.clone(), &separation.invert());
                     }
                 }
             }
