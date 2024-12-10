@@ -53,7 +53,7 @@ impl Grid {
     fn follow_trailhead(&self, trailhead: Trail) {
         let directions = trailhead.get_directions();
 
-        let direction_ok = directions.map(|item| {
+        let directions = directions.map(|item| {
             item.and_then(|v| {
                 self.ascent(v.x, v.y).and_then(|n| {
                     if n == trailhead.current_height + 1 {
@@ -65,13 +65,15 @@ impl Grid {
             })
         });
 
-        for direction in direction_ok {
-            if let Some(direction) = direction {
-                dbg!(&direction);
-                let mut t = trailhead.clone();
-                t.pos = direction;
-                t.current_height += 1;
-                self.follow_trailhead(t);
+        if directions.iter().flatten().count() > 0 {
+            for direction in directions {
+                if let Some(direction) = direction {
+                    dbg!(&direction);
+                    let mut t = trailhead.clone();
+                    t.pos = direction;
+                    t.current_height += 1;
+                    self.follow_trailhead(t);
+                }
             }
         }
     }
