@@ -50,7 +50,11 @@ impl Grid {
         Grid { grid, cols, rows }
     }
 
-    fn follow_trailhead(&self, trailhead: Trail) {
+    fn follow_trailhead(&self, trailhead: Trail) -> Vec<Trail> {
+        if trailhead.current_height == 9 {
+            return vec![trailhead];
+        }
+
         let directions = trailhead.get_directions();
 
         let directions = directions.map(|item| {
@@ -65,6 +69,8 @@ impl Grid {
             })
         });
 
+        let mut trails = Vec::new();
+
         if directions.iter().flatten().count() > 0 {
             for direction in directions {
                 if let Some(direction) = direction {
@@ -72,10 +78,13 @@ impl Grid {
                     let mut t = trailhead.clone();
                     t.pos = direction;
                     t.current_height += 1;
-                    self.follow_trailhead(t);
+                    let followed_trails = self.follow_trailhead(t);
+                    trails.extend_from_slice(&followed_trails);
                 }
             }
         }
+
+        trails
     }
 
     pub fn collect_trailheads(&mut self) {
@@ -86,7 +95,9 @@ impl Grid {
                 if c == '0' {
                     let trailhead = Trail::new(row, col);
 
-                    self.follow_trailhead(trailhead);
+                    let trails = self.follow_trailhead(trailhead);
+
+                    dbg!(trails);
                 }
             }
         }
