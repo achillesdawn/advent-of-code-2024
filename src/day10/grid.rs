@@ -6,7 +6,7 @@ use std::{
 
 use super::vector::Vector;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Trail {
     start: Vector,
     current_height: u32,
@@ -87,7 +87,9 @@ impl Grid {
         trails
     }
 
-    pub fn collect_trailheads(&mut self) {
+    pub fn collect_trailheads(&mut self) -> HashSet<Trail> {
+        let mut trails = HashSet::new();
+
         for col in 0..self.cols {
             for row in 0..self.rows {
                 let c = self.grid[col][row];
@@ -95,12 +97,16 @@ impl Grid {
                 if c == '0' {
                     let trailhead = Trail::new(row, col);
 
-                    let trails = self.follow_trailhead(trailhead);
-
-                    dbg!(trails);
+                    let new_trails = self.follow_trailhead(trailhead);
+                    
+                    for trail in new_trails {
+                        trails.insert(trail);
+                    }
                 }
             }
         }
+
+        trails
     }
 
     fn ascent(&self, x: usize, y: usize) -> Option<u32> {
