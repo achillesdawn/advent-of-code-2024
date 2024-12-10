@@ -109,6 +109,26 @@ impl Grid {
         trails
     }
 
+    pub fn collect_trailheads_ratings(&mut self) -> Vec<Trail> {
+        let mut trails = Vec::new();
+
+        for col in 0..self.cols {
+            for row in 0..self.rows {
+                let c = self.grid[col][row];
+
+                if c == '0' {
+                    let trailhead = Trail::new(row, col);
+
+                    let new_trails = self.follow_trailhead(trailhead);
+                    
+                    trails.extend(new_trails);
+                }
+            }
+        }
+
+        trails
+    }
+
     fn ascent(&self, x: usize, y: usize) -> Option<u32> {
         if self.check(x, y) {
             let c = self.grid[y][x];
