@@ -5,6 +5,9 @@ use crate::read_input;
 
 mod vector;
 
+const EPS: f64 = 0.000001f64;
+const ONE_MINUS: f64 = 1.0 - EPS;
+
 #[derive(Debug)]
 struct Prize {
     a: Vector2<f64>,
@@ -49,25 +52,50 @@ fn parse_to_instructions(s: String) -> Vec<Prize> {
         })
         .collect()
 }
+
+fn calculate(p: Prize) -> usize {
+    let mat = Matrix2::new(p.a.x, p.b.x, p.a.y, p.b.y);
+
+    if let Some(inv) = mat.try_inverse() {
+        let solution = inv * p.prize;
+
+        let x = solution[0];
+        let y = solution[1];
+
+        if (EPS..ONE_MINUS).contains(&x.fract()) || (EPS..ONE_MINUS).contains(&y.fract()) {
+            println!("FAIL {x} {y}");
+            0
+        } else if x < 0.0 || y < 0.0 {
+            println!("NEGATIVE {x} {y}");
+            0
+        } else {
+            println!("SUCCESS {x} {y}");
+            let x = x.round() as usize;
+            let y = y.round() as usize;
+
+            println!("ROUNDED {x} {y}");
+
+            (x * 3) + y
+        }
+    } else {
+        0
+    }
+}
+
 pub fn day13() {
-    let s = read_input("src/day13/case_one.txt");
+    let s = read_input("src/day13/input.txt");
 
     let prizes = parse_to_instructions(s);
-
+    let mut cost = 0usize;
     for p in prizes {
-        let mat = Matrix2::new(p.a.x, p.b.x, p.a.y, p.b.y);
-
-        if let Some(inv) = mat.try_inverse() {
-            let solution = inv * p.prize;
-
-            dbg!(solution);
-        }
+        cost += calculate(p);
     }
+
+    dbg!(cost);
 }
 
 #[cfg(test)]
 mod test {
-    use std::f64::EPSILON;
 
     use crate::read_input;
 
@@ -84,27 +112,16 @@ mod test {
 
     #[test]
     fn test_case_one() {
-
-        const EPS: f64 = 0.000000000001f64;
         let s = read_input("src/day13/case_one.txt");
 
         let prizes = parse_to_instructions(s);
 
+        let mut cost = 0usize;
+
         for p in prizes {
-            let mat = Matrix2::new(p.a.x, p.b.x, p.a.y, p.b.y);
-
-            if let Some(inv) = mat.try_inverse() {
-                let solution = inv * p.prize;
-
-                let x = solution[0];
-                let y = solution[1];
-
-                if x.fract() > EPS || y.fract() > EPS {
-                    println!("NO SOLUTION {x} {y}");
-                } else {
-                    println!("SOLUTION {x} {y}");
-                }
-            }
+            cost += calculate(p);
         }
+
+        assert_eq!(cost, 480);
     }
 }
