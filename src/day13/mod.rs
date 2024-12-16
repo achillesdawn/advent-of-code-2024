@@ -1,9 +1,6 @@
 use nalgebra::base::{Matrix2, Vector2};
-use vector::Vector;
 
 use crate::read_input;
-
-mod vector;
 
 const EPS: f64 = 0.000001f64;
 const ONE_MINUS: f64 = 1.0 - EPS;
