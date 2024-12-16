@@ -1,8 +1,9 @@
+use colored::Colorize;
 use nalgebra::base::{Matrix2, Vector2};
 
 use crate::read_input;
 
-const EPS: f64 = 0.000001f64;
+const EPS: f64 = 0.001f64;
 const ONE_MINUS: f64 = 1.0 - EPS;
 
 #[derive(Debug)]
@@ -27,7 +28,7 @@ fn parse_prize_vector(s: &str) -> Vector2<f64> {
     let x = x.split_once("=").unwrap().1.parse::<f64>().unwrap();
     let y = y.split_once("=").unwrap().1.parse::<f64>().unwrap();
 
-    Vector2::new(x, y)
+    Vector2::new(x + 10000000000000.0, y + 10000000000000.0)
 }
 
 fn parse_to_instructions(s: String) -> Vec<Prize> {
@@ -60,13 +61,13 @@ fn calculate(p: Prize) -> usize {
         let y = solution[1];
 
         if (EPS..ONE_MINUS).contains(&x.fract()) || (EPS..ONE_MINUS).contains(&y.fract()) {
-            println!("FAIL {x} {y}");
+            println!("{} {} {}", "FAIL".red(), x, y);
             0
         } else if x < 0.0 || y < 0.0 {
-            println!("NEGATIVE {x} {y}");
+            println!("{} {x} {y}", "NEGATIVE".blue());
             0
         } else {
-            println!("SUCCESS {x} {y}");
+            println!("{} {x} {y}", "SUCCESS".green());
             let x = x.round() as usize;
             let y = y.round() as usize;
 
@@ -120,5 +121,20 @@ mod test {
         }
 
         assert_eq!(cost, 480);
+    }
+
+    #[test]
+    fn test_part_two_one() {
+        let s = read_input("src/day13/case_one.txt");
+
+        let prizes = parse_to_instructions(s);
+
+        let mut cost = 0usize;
+
+        for p in prizes {
+            cost += calculate(p);
+        }
+
+        dbg!(cost);
     }
 }
