@@ -172,86 +172,19 @@ impl Grid {
         }
     }
 
-    fn follow_trailhead(&self, mut plot: Plot) -> Plot {
-        let directions = plot.get_directions();
+    pub fn get_sum_coords(&self) -> usize {
+        let mut sum_of_coords = 0usize;
 
-        let directions = directions.map(|item| {
-            item.and_then(|v| {
-                self.ascent(v.x, v.y).and_then(|n| {
-                    if n == plot.c {
-                        return Some(v);
-                    }
-
-                    None
-                })
-            })
-        });
-
-        if directions.iter().flatten().count() > 0 {
-            for direction in directions {
-                if let Some(direction) = direction {
-                    if plot.members.contains_key(&direction) {
-                        let entry = plot.members.entry(direction);
-                        entry.and_modify(|e| *e += 1).or_insert(1);
-                        continue;
-                    }
-
-                    plot.members.insert(direction.clone(), 1);
-                    plot.pos = direction;
-
-                    plot = self.follow_trailhead(plot);
+        for y in 0..self.cols {
+            for x in 0..self.rows {
+                let c = self.grid[y][x];
+                if c == 'O' {
+                    sum_of_coords += (y * 100) + x;
                 }
             }
-
-            return plot;
-        } else {
-            return plot;
-        }
-    }
-
-    pub fn collect_plots(&mut self) -> Vec<Plot> {
-        let mut plots = Vec::new();
-        let mut accounted: HashSet<Vector> = HashSet::new();
-
-        for col in 0..self.cols {
-            for row in 0..self.rows {
-                let pos = Vector::new(row, col);
-
-                if accounted.contains(&pos) {
-                    continue;
-                }
-
-                let c = self.grid[col][row];
-
-                let plot = Plot::new(pos, c);
-
-                let plot = self.follow_trailhead(plot);
-
-                let keys: Vec<Vector> = plot.members.keys().map(|i| i.clone()).collect();
-
-                accounted.extend(keys);
-                plots.push(plot);
-            }
         }
 
-        plots
-    }
-
-    fn ascent(&self, x: usize, y: usize) -> Option<char> {
-        if self.check(x, y) {
-            let c = self.grid[y][x];
-            return Some(c);
-        }
-
-        None
-    }
-
-    fn check(&self, x: usize, y: usize) -> bool {
-        if (0..self.rows).contains(&x) && (0..self.cols).contains(&y) {
-            return true;
-        }
-
-        false
+        sum_of_coords
     }
 }
 
