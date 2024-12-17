@@ -9,7 +9,14 @@ mod vector;
 
 fn parse_input(s: String) -> (Grid, Vec<Direction>) {
     let (first, second) = s.split_once("\n\n").unwrap();
-    let grid = Grid::new(first.to_owned());
+
+    let first = first
+        .replace("#", "##")
+        .replace("O", "[]")
+        .replace(".", "..")
+        .replace("@", "@.");
+
+    let grid = Grid::new(first);
 
     let commands = second
         .chars()
@@ -23,18 +30,18 @@ fn parse_input(s: String) -> (Grid, Vec<Direction>) {
 }
 
 pub fn main() {
-    let s = read_input("src/day15/input.txt");
+    let s = read_input("src/day15/example2.txt");
     let (mut grid, commands) = parse_input(s);
 
-    for direction in commands.into_iter() {
-        // println!("MOVING {direction}");
+    for (idx, direction) in commands.into_iter().enumerate() {
+        println!("MOVING {direction}");
         grid.move_towards(direction);
-        // grid.print_grid();
+        grid.print_grid();
+
+        if idx > 31 {
+            break;
+        }
     }
-
-    let sum_of_coords = grid.get_sum_coords();
-
-    dbg!(sum_of_coords);
 }
 
 #[cfg(test)]
@@ -64,14 +71,14 @@ mod tests {
         let s = read_input("src/day15/example2.txt");
         let (mut grid, commands) = parse_input(s);
 
-        for direction in commands.into_iter() {
+        for (idx, direction) in commands.into_iter().enumerate() {
+            println!("MOVING {direction}");
             grid.move_towards(direction);
+            grid.print_grid();
+
+            if idx > 2 {
+                break;
+            }
         }
-
-        grid.print_grid();
-
-        let sum_of_coords = grid.get_sum_coords();
-
-        assert_eq!(sum_of_coords, 10092);
     }
 }

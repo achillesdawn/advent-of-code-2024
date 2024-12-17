@@ -1,52 +1,11 @@
 use std::{
-    collections::{HashMap, HashSet},
     io::{BufWriter, Write},
     path::PathBuf,
 };
 
-use colored::{Color, Colorize};
+use colored::Colorize;
 
 use super::{direction::Direction, vector::Vector};
-
-#[derive(Debug, Clone)]
-pub struct Plot {
-    pub c: char,
-    pos: Vector,
-    members: HashMap<Vector, usize>,
-}
-
-impl Plot {
-    pub fn new(pos: Vector, c: char) -> Self {
-        Plot {
-            members: HashMap::from([(pos.clone(), 0)]),
-            pos,
-            c,
-        }
-    }
-
-    fn get_directions(&self) -> [Option<Vector>; 4] {
-        [
-            Some(self.pos.add(1, 0)),
-            Some(self.pos.add(0, 1)),
-            self.pos.subtract(1, 0),
-            self.pos.subtract(0, 1),
-        ]
-    }
-
-    pub fn calculate_area(&self) -> usize {
-        self.members.len()
-    }
-
-    pub fn calculate_perimeter(&self) -> usize {
-        let mut perimeter = 0usize;
-
-        for value in self.members.values() {
-            perimeter += 4 - value;
-        }
-
-        perimeter
-    }
-}
 
 #[derive(Debug)]
 pub struct Grid {
@@ -124,51 +83,76 @@ impl Grid {
         self.grid[new.y][new.x] = pos_c;
     }
 
-    fn push(&mut self, position: &Vector, direction: Direction) -> bool {
+    fn push(&mut self, position: &Vector, direction: &Direction) -> Option<Vector> {
         if let Some((c, next_pos)) = self.peak_next_at(&position, &direction) {
+            println!(
+                "Pushing at x:{}, y:{} towards {}",
+                position.x, position.y, c
+            );
             match c {
-                '#' => return false,
+                '#' => return None,
 
                 '.' => {
-                    self.update_position(&position, &next_pos);
-                    return true;
+                    return Some(next_pos);
                 }
 
-                'O' => {
-                    if self.push(&next_pos, direction) {
-                        self.update_position(&position, &next_pos);
-                        return true;
-                    } else {
-                        return false;
+                '[' => match &direction {
+                    Direction::Up | Direction::Down => {
+                        if let (Some(v1), Some(v2)) = (
+                            self.push(&next_pos, &direction),
+                            self.push(&&next_pos.add(1, 0), &direction),
+                        ) {
+                            self.update_position(&next_pos, &v1);
+                            self.update_position(&next_pos.add(1, 0), &v2);
+                            return Some(next_pos);
+                        }
+
+                        None
                     }
-                }
+
+                    Direction::Right | Direction::Left => {
+                        if let Some(v) = self.push(&next_pos, direction) {
+                            self.update_position(&next_pos, &v);
+                            return Some(next_pos);
+                        }
+                        None
+                    }
+                },
+
+                ']' => match &direction {
+                    Direction::Up | Direction::Down => {
+                        if let (Some(v1), Some(v2)) = (
+                            self.push(&next_pos, &direction),
+                            self.push(&next_pos.subtract(1, 0).unwrap(), &direction),
+                        ) {
+                            self.update_position(&next_pos, &v1);
+                            self.update_position(&next_pos.subtract(1, 0).unwrap(), &v2);
+                            return Some(next_pos);
+                        }
+
+                        None
+                    }
+
+                    Direction::Right | Direction::Left => {
+                        if let Some(v) = self.push(&next_pos, direction) {
+                            self.update_position(&next_pos, &v);
+                            return Some(next_pos);
+                        }
+                        None
+                    }
+                },
 
                 _ => panic!(),
             }
         } else {
-            return false;
+            return None;
         }
     }
 
     pub fn move_towards(&mut self, direction: Direction) {
-        if let Some((c, vector)) = self.peak_next(&direction) {
-            match c {
-                '.' => {
-                    self.update_position(&self.pos.clone(), &vector);
-                    self.pos = vector;
-                }
-
-                '#' => {}
-
-                'O' => {
-                    if self.push(&vector, direction) {
-                        self.update_position(&self.pos.clone(), &vector);
-                        self.pos = vector;
-                    }
-                }
-
-                _ => panic!(),
-            }
+        if let Some(vector) = self.push(&self.pos.clone(), &direction) {
+            self.update_position(&self.pos.clone(), &vector);
+            self.pos = vector;
         }
     }
 
@@ -196,7 +180,8 @@ impl Grid {
             for c in outer.iter() {
                 match *c {
                     '@' => print!("{}", format!("{c}").red().bold()),
-                    'O' => print!("{}", format!("{c}").blue().bold()),
+                    '[' => print!("{}", format!("{c}").blue().bold()),
+                    ']' => print!("{}", format!("{c}").blue().bold()),
                     _ => print!("{c}"),
                 }
             }
