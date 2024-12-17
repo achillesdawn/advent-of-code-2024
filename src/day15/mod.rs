@@ -23,7 +23,7 @@ fn parse_input(s: String) -> (Grid, Vec<Direction>) {
 }
 
 pub fn main() {
-    let s = read_input("src/day15/example2.txt");
+    let s = read_input("src/day15/input.txt");
     let (mut grid, commands) = parse_input(s);
 
     for direction in commands.into_iter() {
@@ -31,6 +31,10 @@ pub fn main() {
         grid.move_towards(direction);
         // grid.print_grid();
     }
+
+    let sum_of_coords = grid.get_sum_coords();
+
+    dbg!(sum_of_coords);
 }
 
 #[cfg(test)]
