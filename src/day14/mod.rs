@@ -1,3 +1,4 @@
+use colored::Colorize;
 use nalgebra::Vector2;
 
 use crate::read_input;
@@ -111,7 +112,9 @@ fn calculate_step(robots: &Vec<Robot>, step: isize) {
 
     let grid = draw_grid(positions);
 
+    println!("- {step} -------");
     print_grid(grid);
+    println!()
 }
 
 pub fn main() {
@@ -119,8 +122,9 @@ pub fn main() {
 
     let robots = parse_input(s);
 
-    for i in 0..100 {
-        calculate_step(&robots, i);
+    for i in 2..100 {
+        let step = i*100 + (i - 2);
+        calculate_step(&robots, step);
     }
 }
 
