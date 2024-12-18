@@ -30,18 +30,19 @@ fn parse_input(s: String) -> (Grid, Vec<Direction>) {
 }
 
 pub fn main() {
-    let s = read_input("src/day15/example2.txt");
+    let s = read_input("src/day15/input.txt");
     let (mut grid, commands) = parse_input(s);
 
     for (idx, direction) in commands.into_iter().enumerate() {
-        println!("MOVING {direction}");
-        grid.move_towards(direction);
-        grid.print_grid();
-
-        if idx > 31 {
-            break;
+        if grid.move_towards(&direction) {
+            grid.print_grid();
+            println!("---");
         }
     }
+
+    let coord_hash = grid.get_sum_coords();
+
+    dbg!(coord_hash);
 }
 
 #[cfg(test)]
@@ -56,7 +57,7 @@ mod tests {
         let (mut grid, commands) = parse_input(s);
 
         for direction in commands.into_iter() {
-            grid.move_towards(direction);
+            grid.move_towards(&direction);
         }
 
         grid.print_grid();
@@ -72,13 +73,12 @@ mod tests {
         let (mut grid, commands) = parse_input(s);
 
         for (idx, direction) in commands.into_iter().enumerate() {
-            println!("MOVING {direction}");
-            grid.move_towards(direction);
+            grid.move_towards(&direction);
+            println!("MOVE {idx}: {direction}");
             grid.print_grid();
-
-            if idx > 2 {
-                break;
-            }
         }
+
+        let coord_hash = grid.get_sum_coords();
+        assert_eq!(coord_hash, 9021);
     }
 }

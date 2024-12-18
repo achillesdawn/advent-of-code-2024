@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     io::{BufWriter, Write},
     path::PathBuf,
 };
@@ -13,6 +14,9 @@ pub struct Grid {
 
     pub cols: usize,
     pub rows: usize,
+
+    moved: HashSet<Vector>,
+    last_moved: HashSet<Vector>,
 
     pos: Vector,
 }
@@ -31,6 +35,8 @@ impl Grid {
             cols,
             rows,
             pos,
+            moved: HashSet::new(),
+            last_moved: HashSet::new(),
         }
     }
 
@@ -76,6 +82,12 @@ impl Grid {
     }
 
     pub fn update_position(&mut self, pos: &Vector, new: &Vector) {
+        self.moved.insert(pos.clone());
+        self.moved.insert(new.clone());
+
+        self.last_moved.insert(pos.clone());
+        self.last_moved.insert(new.clone());
+
         let pos_c = self.grid[pos.y][pos.x];
         let new_c = self.grid[new.y][new.x];
 
@@ -83,12 +95,60 @@ impl Grid {
         self.grid[new.y][new.x] = pos_c;
     }
 
+    fn check(&self, position: &Vector, direction: &Direction) -> bool {
+        if let Some((c, next_pos)) = self.peak_next_at(&position, &direction) {
+            return match c {
+                '#' => false,
+
+                '.' => true,
+
+                '[' => match direction {
+                    Direction::Up | Direction::Down => {
+                        if self.check(&next_pos, &direction)
+                            && self.check(&next_pos.add(1, 0), &direction)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    Direction::Right | Direction::Left => {
+                        if self.check(&next_pos, direction) {
+                            return true;
+                        }
+                        return false;
+                    }
+                },
+
+                ']' => match &direction {
+                    Direction::Up | Direction::Down => {
+                        if self.check(&next_pos, &direction)
+                            && self.check(&next_pos.subtract(1, 0).unwrap(), &direction)
+                        {
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    Direction::Right | Direction::Left => {
+                        if self.check(&next_pos, direction) {
+                            return true;
+                        }
+                        return false;
+                    }
+                },
+
+                _ => panic!(),
+            };
+        }
+
+        false
+    }
+
     fn push(&mut self, position: &Vector, direction: &Direction) -> Option<Vector> {
         if let Some((c, next_pos)) = self.peak_next_at(&position, &direction) {
-            println!(
-                "Pushing at x:{}, y:{} towards {}",
-                position.x, position.y, c
-            );
             match c {
                 '#' => return None,
 
@@ -149,11 +209,33 @@ impl Grid {
         }
     }
 
-    pub fn move_towards(&mut self, direction: Direction) {
-        if let Some(vector) = self.push(&self.pos.clone(), &direction) {
-            self.update_position(&self.pos.clone(), &vector);
-            self.pos = vector;
+    pub fn move_towards(&mut self, direction: &Direction) -> bool {
+        self.last_moved = HashSet::new();
+
+        let pushed_box = if let Some((c, v)) = self.peak_next_at(&self.pos.clone(), &direction) {
+            match c {
+                '[' | ']' => {
+                    self.print_grid();
+                    println!("Pushing {direction} x:{}, y:{} towards {}", v.x, v.y, c);
+
+                    true
+                }
+                _ => false,
+            }
+        } else {
+            false
+        };
+
+        if self.check(&self.pos.clone(), direction) {
+            if let Some(vector) = self.push(&self.pos.clone(), &direction) {
+                self.update_position(&self.pos.clone(), &vector);
+                self.pos = vector;
+
+                return pushed_box;
+            }
         }
+
+        false
     }
 
     pub fn get_sum_coords(&self) -> usize {
@@ -162,7 +244,7 @@ impl Grid {
         for y in 0..self.cols {
             for x in 0..self.rows {
                 let c = self.grid[y][x];
-                if c == 'O' {
+                if c == '[' {
                     sum_of_coords += (y * 100) + x;
                 }
             }
@@ -175,13 +257,22 @@ impl Grid {
 #[allow(unused)]
 impl Grid {
     pub fn print_grid(&self) {
-        for (col, outer) in self.grid.iter().enumerate() {
-            print!("{:<3} ", col);
-            for c in outer.iter() {
+        for (y, outer) in self.grid.iter().enumerate() {
+            print!("{:<3} ", y);
+            for (x, c) in outer.iter().enumerate() {
+                let pos = Vector::new(x, y);
+
                 match *c {
                     '@' => print!("{}", format!("{c}").red().bold()),
-                    '[' => print!("{}", format!("{c}").blue().bold()),
-                    ']' => print!("{}", format!("{c}").blue().bold()),
+                    '[' | ']' => {
+                        if self.last_moved.contains(&pos) {
+                            print!("{}", format!("{c}").yellow().bold())
+                        } else if self.moved.contains(&pos) {
+                            print!("{}", format!("{c}").green().bold())
+                        } else {
+                            print!("{}", format!("{c}").blue().bold())
+                        }
+                    }
                     _ => print!("{c}"),
                 }
             }
